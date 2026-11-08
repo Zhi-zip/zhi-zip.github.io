@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zhi-zip 文档 · 轻量级 GUI 压缩工具</title>
+    <link rel="icon" href="./icon.ico" type="image/x-icon">
+    <style>
+        /* ========== 基础变量 ========== */
+        :root {
+            --sidebar-width: 280px;
+            --header-height: 56px;
+            --primary: #346ddb;
+            --primary-light: #e8effc;
+            --bg: #ffffff;
+            --bg-sidebar: #f7f8fa;
+            --bg-header: rgba(255, 255, 255, 0.92);
+            --text: #1a1a1a;
+            --text-secondary: #5f6368;
+            --text-sidebar: #3b3f46;
+            --border: #e4e7ec;
+            --code-bg: #f4f6f8;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --radius: 8px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --primary: #5b8def;
+            --primary-light: #1e2a44;
+            --bg: #0f1117;
+            --bg-sidebar: #161a22;
+            --bg-header: rgba(15, 17, 23, 0.92);
+            --text: #e8eaed;
+            --text-secondary: #9aa0a6;
+            --text-sidebar: #b0b6bf;
+            --border: #2a2f3a;
+            --code-bg: #1a1e28;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: calc(var(--header-height) + 24px);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
+            transition: background var(--transition), color var(--transition);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ========== 顶部导航栏 ========== */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            background: var(--bg-header);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            transition: background var(--transition), border-color var(--transition);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .menu-toggle {
+            display: none;
+            width: 36px;
+            height: 36px;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text);
+            border-radius: 6px;
+            transition: background var(--transition);
+        }
+        .menu-toggle:hover { background: var(--primary-light); }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 17px;
+            color: var(--text);
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .logo-mark {
+            display: block;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            object-fit: contain;
+        }
+        .logo-sub {
+            font-weight: 400;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-left: 2px;
+        }
+
+        .header-center {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            padding: 0 24px;
+        }
+
+        .search-box {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+        }
+        .search-box svg {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+        .search-box input {
+            width: 100%;
+            height: 38px;
+            padding: 0 16px 0 38px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-sidebar);
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+            transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+        }
+        .search-box input::placeholder { color: var(--text-secondary); }
+        .search-box input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(52, 109, 219, 0.15);
+            background: var(--bg);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            background: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+        }
+        .icon-btn:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .icon-btn svg { width: 18px; height: 18px; }
+
+        /* ========== 侧边栏 ========== */
+        .sidebar {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            padding: 20px 0 40px;
+            transition: transform var(--transition), background var(--transition), border-color var(--transition);
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        .sidebar::-webkit-scrollbar { width: 5px; }
+        .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+        .nav-group { margin-bottom: 6px; }
+
+        .nav-group-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 20px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+            transition: color var(--transition);
+        }
+        .nav-group-title:hover { color: var(--text); }
+        .nav-group-title .chevron {
+            width: 14px;
+            height: 14px;
+            transition: transform var(--transition);
+        }
+        .nav-group.collapsed .nav-group-title .chevron { transform: rotate(-90deg); }
+        .nav-group.collapsed .nav-items { display: none; }
+
+        .nav-items { list-style: none; }
+
+        .nav-items a {
+            display: flex;
+            align-items: center;
+            padding: 7px 20px 7px 28px;
+            font-size: 14px;
+            color: var(--text-sidebar);
+            text-decoration: none;
+            border-left: 3px solid transparent;
+            transition: background var(--transition), color var(--transition), border-color var(--transition);
+            line-height: 1.5;
+            margin: 1px 0;
+        }
+        .nav-items a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .nav-items a.active {
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 600;
+            border-left-color: var(--primary);
+        }
+
+        .nav-items .sub a {
+            padding-left: 44px;
+            font-size: 13px;
+        }
+
+        /* 侧边栏遮罩（移动端） */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            top: var(--header-height);
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 90;
+            opacity: 0;
+            transition: opacity var(--transition);
+        }
+
+        /* ========== 主内容区 ========== */
+        .main {
+            margin-left: var(--sidebar-width);
+            padding: calc(var(--header-height) + 32px) 48px 80px;
+            max-width: calc(var(--sidebar-width) + 900px);
+            transition: margin-left var(--transition);
+        }
+
+        .content {
+            max-width: 820px;
+        }
+
+        /* 标题 */
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1.3;
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+        }
+        h2 {
+            font-size: 1.45rem;
+            font-weight: 700;
+            margin: 40px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            letter-spacing: -0.01em;
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 650;
+            margin: 28px 0 10px;
+        }
+
+        .page-desc {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        p { margin-bottom: 14px; }
+
+        a { color: var(--primary); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* 功能特性卡片 */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+            margin: 20px 0 28px;
+        }
+        .feature-card {
+            padding: 18px 20px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--bg-sidebar);
+            transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+        }
+        .feature-card:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow);
+            transform: translateY(-1px);
+        }
+        .feature-card .fc-icon { font-size: 22px; margin-bottom: 8px; }
+        .feature-card h4 { font-size: 14px; font-weight: 650; margin-bottom: 4px; }
+        .feature-card p { font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.5; }
+
+        /* 提示块 */
+        .callout {
+            display: flex;
+            gap: 12px;
+            padding: 16px 18px;
+            border-radius: var(--radius);
+            margin: 18px 0;
+            font-size: 14px;
+            line-height: 1.6;
+            border-left: 4px solid;
+        }
+        .callout-icon { flex-shrink: 0; font-size: 16px; line-height: 1.6; }
+        .callout.info {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--text);
+        }
+        .callout.warn {
+            background: #fff8e6;
+            border-color: #f0a500;
+        }
+        [data-theme="dark"] .callout.warn { background: #2a2418; }
+
+        /* 代码块 */
+        pre {
+            position: relative;
+            margin: 16px 0 20px;
+            padding: 16px 18px;
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow-x: auto;
+            font-size: 13.5px;
+            line-height: 1.65;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+            border: none;
+            color: var(--text);
+            font-size: inherit;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 3px 10px;
+            font-size: 11px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            background: var(--bg);
+            color: var(--text-secondary);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity var(--transition), background var(--transition);
+            font-family: inherit;
+        }
+        pre:hover .copy-btn { opacity: 1; }
+        .copy-btn:hover { background: var(--primary-light); color: var(--primary); }
+
+        code {
+            padding: 2px 6px;
+            background: var(--code-bg);
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            border: 1px solid var(--border);
+        }
+
+        /* 表格 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0 20px;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            font-weight: 650;
+            background: var(--bg-sidebar);
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* 页脚导航 */
+        .page-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 48px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+        .footer-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 14px 18px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            text-decoration: none;
+            color: var(--text);
+            transition: border-color var(--transition), box-shadow var(--transition);
+            min-width: 0;
+            max-width: 48%;
+        }
+        .footer-nav:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow);
+            text-decoration: none;
+        }
+        .footer-nav .fn-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); font-weight: 600; }
+        .footer-nav .fn-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .footer-nav.next { margin-left: auto; text-align: right; }
+
+        /* 回到顶部 */
+        .back-top {
+            position: fixed;
+            right: 28px;
+            bottom: 28px;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all var(--transition);
+            z-index: 80;
+        }
+        .back-top.show { opacity: 1; visibility: visible; transform: translateY(0); }
+        .back-top:hover { color: var(--primary); border-color: var(--primary); }
+
+        /* ========== 响应式 ========== */
+        @media (max-width: 960px) {
+            .header-center { display: none; }
+
+            .sidebar {
+                transform: translateX(-100%);
+                width: 290px;
+                box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+            }
+            .sidebar.open { transform: translateX(0); }
+
+            .sidebar-overlay.open {
+                display: block;
+                opacity: 1;
+            }
+
+            .menu-toggle { display: flex; }
+
+            .main {
+                margin-left: 0;
+                padding: calc(var(--header-height) + 24px) 20px 60px;
+            }
+
+            h1 { font-size: 1.6rem; }
+            h2 { font-size: 1.25rem; }
+            h3 { font-size: 1.05rem; }
+
+            .page-footer { flex-direction: column; }
+            .footer-nav { max-width: 100%; }
+            .footer-nav.next { margin-left: 0; text-align: left; }
+        }
+
+        @media (max-width: 480px) {
+            .header { padding: 0 14px; }
+            .logo-sub { display: none; }
+            .main { padding-left: 16px; padding-right: 16px; }
+            .feature-grid { grid-template-columns: 1fr; }
+        }
+
+        /* 搜索高亮 */
+        mark {
+            background: #ffe08a;
+            color: #1a1a1a;
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+        [data-theme="dark"] mark { background: #7a5d00; color: #ffe08a; }
+    </style>
+</head>
+<body>
+
+<!-- ========== 顶部导航 ========== -->
+<header class="header">
+    <div class="header-left">
+        <button class="menu-toggle" id="menuToggle" aria-label="打开菜单">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
+        <a class="logo" href="#">
+            <img class="logo-mark" src="./icon.ico" alt="Zhi-zip">
+            Zhi-zip
+            <span class="logo-sub">文档</span>
+        </a>
+    </div>
+    <div class="header-center">
+        <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="searchInput" placeholder="搜索文档... ( / 聚焦)" autocomplete="off">
+        </div>
+    </div>
+    <div class="header-right">
+        <button class="icon-btn" id="themeToggle" aria-label="切换主题" title="切换深浅色">
+            <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+        </button>
+        <a class="icon-btn" href="https://github.com/zhi-xiaoer/Zhi-zip" target="_blank" rel="noopener" title="GitHub 仓库" aria-label="GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12 12 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+        </a>
+    </div>
+</header>
+
+<!-- 移动端遮罩 -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ========== 侧边栏 ========== -->
+<aside class="sidebar" id="sidebar">
+    <div class="nav-group" data-group="开始">
+        <div class="nav-group-title">
+            开始
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <ul class="nav-items">
+            <li><a href="#intro" class="active">简介</a></li>
+            <li><a href="#features">功能特性</a></li>
+            <li><a href="#requirements">环境依赖</a></li>
+        </ul>
+    </div>
+
+    <div class="nav-group" data-group="快速开始">
+        <div class="nav-group-title">
+            快速开始
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <ul class="nav-items">
+            <li><a href="#install">安装依赖</a></li>
+            <li><a href="#run-py">直接运行 .py</a></li>
+            <li><a href="#build-exe">打包为 .exe</a></li>
+        </ul>
+    </div>
+
+    <div class="nav-group" data-group="使用指南">
+        <div class="nav-group-title">
+            使用指南
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <ul class="nav-items">
+            <li><a href="#compress">压缩文件</a></li>
+            <li><a href="#unzip">解压缩</a></li>
+            <li><a href="#batch">累加操作</a></li>
+        </ul>
+    </div>
+
+    <div class="nav-group" data-group="项目">
+        <div class="nav-group-title">
+            项目
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <ul class="nav-items">
+            <li><a href="#license">许可证</a></li>
+            <li><a href="#links">相关链接</a></li>
+        </ul>
+    </div>
+</aside>
+
+<!-- ========== 主内容 ========== -->
+<main class="main">
+    <div class="content">
+
+        <h1 id="intro">Zhi-zip 简介</h1>
+        <p class="page-desc">
+            一款基于 <strong>Python + PySide6</strong> 开发的轻量级 GUI 压缩工具，支持多格式、异步处理与累加操作，
+            兼顾日常压缩与解压需求。
+        </p>
+
+        <div class="callout info">
+            <span class="callout-icon">💡</span>
+            <div>
+                <strong>项目定位：</strong>轻量、纯 Python 实现、界面流畅。适合不想依赖重量级压缩软件、
+                又需要图形界面的开发者或普通用户。
+            </div>
+        </div>
+
+        <!-- 功能特性 -->
+        <h2 id="features">功能特性</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="fc-icon">📦</div>
+                <h4>多格式支持</h4>
+                <p>支持单文件多选与文件夹递归压缩，覆盖市面主流压缩格式。</p>
+            </div>
+            <div class="feature-card">
+                <div class="fc-icon">🛡️</div>
+                <h4>防覆盖机制</h4>
+                <p>自动保留文件相对目录结构，避免同名文件在压缩时冲突。</p>
+            </div>
+            <div class="feature-card">
+                <div class="fc-icon">⚡</div>
+                <h4>异步处理</h4>
+                <p>后台线程执行压缩，界面流畅不卡顿，并实时显示进度。</p>
+            </div>
+            <div class="feature-card">
+                <div class="fc-icon">➕</div>
+                <h4>累加操作</h4>
+                <p>支持分批次把文件或文件夹添加到压缩列表，灵活组织压缩内容。</p>
+            </div>
+            <div class="feature-card">
+                <div class="fc-icon">🗜️</div>
+                <h4>丰富的解压缩</h4>
+                <p>支持市面主流格式的解压缩操作，压缩与解压一站完成。</p>
+            </div>
+            <div class="feature-card">
+                <div class="fc-icon">🐍</div>
+                <h4>纯 Python</h4>
+                <p>基于 Python 3.8+ 与 PySide6，安装简单，二次开发友好。</p>
+            </div>
+        </div>
+
+        <!-- 环境依赖 -->
+        <h2 id="requirements">环境依赖</h2>
+        <table>
+            <thead>
+                <tr><th>依赖项</th><th>要求</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Python</td><td><code>3.8+</code></td></tr>
+                <tr><td>PySide6</td><td>通过 <code>pip</code> 安装</td></tr>
+                <tr><td>操作系统</td><td>Windows / macOS / Linux（取决于 PySide6 支持）</td></tr>
+            </tbody>
+        </table>
+
+        <!-- 快速开始 -->
+        <h2 id="install">安装依赖</h2>
+        <pre><button class="copy-btn" data-copy="pip install PySide6">复制</button><code>pip install PySide6</code></pre>
+
+        <h2 id="run-py">直接运行 .py</h2>
+        <p>安装依赖后，在项目目录执行：</p>
+        <pre><button class="copy-btn" data-copy="python Zhi-zip.py">复制</button><code>python Zhi-zip.py</code></pre>
+        <div class="callout info">
+            <span class="callout-icon">💡</span>
+            <div>确保终端当前目录包含 <code>Zhi-zip.py</code>，或使用文件的完整路径运行。</div>
+        </div>
+
+        <h2 id="build-exe">打包为 .exe</h2>
+        <p>如果需要分发给没有 Python 环境的 Windows 用户，可以用 PyInstaller 打包：</p>
+        <pre><button class="copy-btn" data-copy="pip install pyinstaller">复制</button><code># 安装打包工具
+pip install pyinstaller</code></pre>
+        <pre><button class="copy-btn" data-copy="pyinstaller --noconsole --onefile Zhi_zip.py">复制</button><code># 打包为单文件且隐藏控制台
+pyinstaller --noconsole --onefile Zhi_zip.py</code></pre>
+        <p>打包完成后，可执行文件位于 <code>dist/</code> 目录下。</p>
+
+        <!-- 使用指南 -->
+        <h2 id="compress">压缩文件</h2>
+        <p>Zhi-zip 的压缩流程围绕“文件列表”组织：</p>
+        <ol style="margin: 12px 0 18px; padding-left: 22px; color: var(--text-secondary);">
+            <li style="margin-bottom: 6px;">点击添加按钮，选择单个文件、多个文件或整个文件夹；</li>
+            <li style="margin-bottom: 6px;">文件会加入压缩列表，文件夹默认递归包含子目录；</li>
+            <li style="margin-bottom: 6px;">可以继续追加文件或文件夹，实现累加操作；</li>
+            <li>确认输出路径后开始压缩，进度会在界面实时刷新。</li>
+        </ol>
+        <div class="callout info">
+            <span class="callout-icon">🛡️</span>
+            <div><strong>防覆盖机制：</strong>压缩时自动保留相对目录结构，同名文件不会互相覆盖。</div>
+        </div>
+
+        <h2 id="unzip">解压缩</h2>
+        <p>从 <strong>v1.2.0</strong> 开始，Zhi-zip 新增了解压缩支持。选择压缩包后指定输出目录即可解压，支持市面主流格式。</p>
+
+        <h2 id="batch">累加操作</h2>
+        <p>Zhi-zip 允许分多次向压缩列表添加内容，而不是每次都要重新选择全部文件。适合逐步收集素材、分批次组织压缩包的场景。</p>
+
+        <!-- 项目信息 -->
+        <h2 id="license">许可证</h2>
+        <p>本项目基于 <strong>MIT</strong> 许可证开源。可以自由使用、修改和分发，保留版权声明即可。</p>
+
+        <h2 id="links">相关链接</h2>
+        <table>
+            <thead><tr><th>资源</th><th>链接</th></tr></thead>
+            <tbody>
+                <tr><td>GitHub 仓库</td><td><a href="https://github.com/zhi-xiaoer/Zhi-zip" target="_blank">github.com/zhi-xiaoer/Zhi-zip</a></td></tr>
+                <tr><td>主程序文件</td><td><a href="https://github.com/zhi-xiaoer/Zhi-zip/blob/main/Zhi-zip.py" target="_blank">Zhi-zip.py</a></td></tr>
+                <tr><td>许可证文件</td><td><a href="https://github.com/zhi-xiaoer/Zhi-zip/blob/main/LICENSE" target="_blank">LICENSE</a></td></tr>
+            </tbody>
+        </table>
+
+        <!-- 页脚导航 -->
+        <div class="page-footer">
+            <a class="footer-nav prev" href="#intro">
+                <span class="fn-label">上一篇</span>
+                <span class="fn-title">简介</span>
+            </a>
+            <a class="footer-nav next" href="#features">
+                <span class="fn-label">下一篇</span>
+                <span class="fn-title">功能特性</span>
+            </a>
+        </div>
+
+    </div>
+</main>
+
+<!-- 回到顶部 -->
+<button class="back-top" id="backTop" aria-label="回到顶部">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="18 15 12 9 6 15"/>
+    </svg>
+</button>
+
+<script>
+(function () {
+    'use strict';
+
+    // ========== 主题切换 ==========
+    const themeToggle = document.getElementById('themeToggle');
+    const iconSun = document.getElementById('iconSun');
+    const iconMoon = document.getElementById('iconMoon');
+
+    function setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('zhi-zip-theme', theme);
+        const isDark = theme === 'dark';
+        iconSun.style.display = isDark ? 'none' : 'block';
+        iconMoon.style.display = isDark ? 'block' : 'none';
+    }
+
+    const savedTheme = localStorage.getItem('zhi-zip-theme');
+    if (savedTheme) {
+        setTheme(savedTheme);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        setTheme('dark');
+    } else {
+        setTheme('light');
+    }
+
+    themeToggle.addEventListener('click', function () {
+        const current = document.documentElement.getAttribute('data-theme');
+        setTheme(current === 'dark' ? 'light' : 'dark');
+    });
+
+    // ========== 侧边栏折叠分组 ==========
+    document.querySelectorAll('.nav-group-title').forEach(function (title) {
+        title.addEventListener('click', function () {
+            this.parentElement.classList.toggle('collapsed');
+        });
+    });
+
+    // ========== 移动端侧边栏 ==========
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+
+    function openSidebar() {
+        sidebar.classList.add('open');
+        overlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeSidebar() {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    menuToggle.addEventListener('click', function () {
+        if (sidebar.classList.contains('open')) {
+            closeSidebar();
+        } else {
+            openSidebar();
+        }
+    });
+
+    overlay.addEventListener('click', closeSidebar);
+
+    sidebar.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', function () {
+            if (window.innerWidth <= 960) closeSidebar();
+        });
+    });
+
+    // ========== 侧边栏活动链接高亮（基于滚动） ==========
+    const navLinks = sidebar.querySelectorAll('.nav-items a');
+    const sections = [];
+    navLinks.forEach(function (link) {
+        const href = link.getAttribute('href');
+        if (href && href.startsWith('#')) {
+            const el = document.querySelector(href);
+            if (el) sections.push({ id: href.slice(1), el: el, link: link });
+        }
+    });
+
+    function updateActiveNav() {
+        const scrollY = window.scrollY;
+        const offset = 100;
+        let current = sections[0];
+
+        for (let i = 0; i < sections.length; i++) {
+            const top = sections[i].el.getBoundingClientRect().top + scrollY;
+            if (top - offset <= scrollY) {
+                current = sections[i];
+            }
+        }
+
+        navLinks.forEach(function (l) { l.classList.remove('active'); });
+        if (current) current.link.classList.add('active');
+    }
+
+    let ticking = false;
+    window.addEventListener('scroll', function () {
+        if (!ticking) {
+            window.requestAnimationFrame(function () {
+                updateActiveNav();
+                ticking = false;
+            });
+            ticking = true;
+        }
+        const backTop = document.getElementById('backTop');
+        if (window.scrollY > 400) {
+            backTop.classList.add('show');
+        } else {
+            backTop.classList.remove('show');
+        }
+    });
+
+    // ========== 回到顶部 ==========
+    document.getElementById('backTop').addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // ========== 搜索高亮 ==========
+    const searchInput = document.getElementById('searchInput');
+    const content = document.querySelector('.content');
+    let originalContent = content.innerHTML;
+
+    function clearSearch() {
+        if (searchInput.value.trim() === '') {
+            content.innerHTML = originalContent;
+        }
+    }
+
+    function doSearch() {
+        const query = searchInput.value.trim();
+        if (!query) {
+            content.innerHTML = originalContent;
+            return;
+        }
+
+        content.innerHTML = originalContent;
+
+        const walker = document.createTreeWalker(
+            content,
+            NodeFilter.SHOW_TEXT,
+            {
+                acceptNode: function (node) {
+                    const parent = node.parentElement;
+                    if (!parent) return NodeFilter.FILTER_REJECT;
+                    const tag = parent.tagName.toLowerCase();
+                    if (tag === 'script' || tag === 'style' || tag === 'pre' || tag === 'code') {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            }
+        );
+
+        const textNodes = [];
+        while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+        const lowerQuery = query.toLowerCase();
+
+        textNodes.forEach(function (node) {
+            const text = node.textContent;
+            const lowerText = text.toLowerCase();
+            const idx = lowerText.indexOf(lowerQuery);
+            if (idx === -1) return;
+
+            const span = document.createElement('span');
+            const before = document.createTextNode(text.slice(0, idx));
+            const mark = document.createElement('mark');
+            mark.textContent = text.slice(idx, idx + query.length);
+            const after = document.createTextNode(text.slice(idx + query.length));
+
+            span.appendChild(before);
+            span.appendChild(mark);
+            span.appendChild(after);
+            node.parentNode.replaceChild(span, node);
+        });
+    }
+
+    let searchTimer;
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(doSearch, 200);
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === '/' && document.activeElement !== searchInput &&
+            document.activeElement.tagName !== 'INPUT' &&
+            document.activeElement.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            searchInput.focus();
+        }
+        if (e.key === 'Escape') {
+            if (document.activeElement === searchInput) {
+                searchInput.value = '';
+                content.innerHTML = originalContent;
+                searchInput.blur();
+            }
+        }
+    });
+
+    // ========== 代码复制 ==========
+    document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const code = this.parentElement.querySelector('code').textContent;
+            navigator.clipboard.writeText(code).then(function () {
+                const original = btn.textContent;
+                btn.textContent = '已复制';
+                setTimeout(function () { btn.textContent = original; }, 1500);
+            }).catch(function () {
+                const textarea = document.createElement('textarea');
+                textarea.value = code;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                btn.textContent = '已复制';
+                setTimeout(function () { btn.textContent = '复制'; }, 1500);
+            });
+        });
+    });
+
+    // ========== 初始化 ==========
+    updateActiveNav();
+
+    window.addEventListener('resize', function () {
+        if (window.innerWidth > 960) {
+            closeSidebar();
+        }
+    });
+
+})();
+</script>
+</body>
+</html>
